@@ -1,0 +1,51 @@
+trigger:
+  branches:
+    include:
+    - master
+    - releases/*
+    - feature/*
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+    buildConfiguration: 'Release'
+
+steps:
+
+- task: UseDotNet@2
+  displayName: 'Install .NET Core SDK'
+  inputs:
+    version: 3.1.x
+    performMultiLevelLookup: true
+    includePreviewVersions: true # Required for preview versions
+
+- task: DotNetCoreCLI@2
+  displayName: 'Restore Nuget packages for CG.TPL.API project'
+  inputs:
+    command: restore
+    projects: |
+        CG.TPL/CG.TPL.API/CG.TPL.API.csproj
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build CG.TPL.API project'
+  inputs:
+    command: build
+    projects: |
+        CG.TPL/CG.TPL.API/CG.TPL.API.csproj
+    arguments: --configuration $(buildConfiguration)
+
+- task: DotNetCoreCLI@2
+  displayName: 'Publish CG.TPL.API project to output directory'
+  inputs:
+    command: publish
+    projects: |
+        CG.TPL/CG.TPL.API/CG.TPL.API.csproj
+    arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+    publishWebProjects: True
+    zipAfterPublish: True
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathtoPublish: '$(Build.ArtifactStagingDirectory)' 
+    artifactName: 'drop'
